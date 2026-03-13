@@ -5,7 +5,7 @@ Push **this folder** (VivinoApp only) to a new repo on your personal GitHub.
 ## 1. Create the new repo on GitHub
 
 1. Go to [github.com/new](https://github.com/new).
-2. **Repository name**: `prowein-vivino-2026` (or `Prowein-x-Vivino-2026`).
+2. **Repository name**: `prowein-vivino-2026` (lowercase recommended).
 3. **Description** (optional): `Prowein 2026 × Vivino — iOS app`.
 4. Choose **Private** or Public.
 5. Do **not** add README, .gitignore, or license — this project already has them.
