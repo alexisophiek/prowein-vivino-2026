@@ -21,6 +21,7 @@
 		83EE679D25F2771700FEBACA /* WineryLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83EE679C25F2771700FEBACA /* WineryLoader.swift */; };
 		A1B2C3D52F6209A900BBE6C7 /* GeneratedCountryFlags.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D42F6209A900BBE6C7 /* GeneratedCountryFlags.swift */; };
 		B2C3D4E62F6209A900BBE6C8 /* CountryFlag.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C3D4E52F6209A900BBE6C8 /* CountryFlag.swift */; };
+		C3D4E5F82F6209A900BBE6C9 /* SessionLogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3D4E5F72F6209A900BBE6C9 /* SessionLogView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -40,6 +41,7 @@
 		83EE679C25F2771700FEBACA /* WineryLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WineryLoader.swift; sourceTree = "<group>"; };
 		A1B2C3D42F6209A900BBE6C7 /* GeneratedCountryFlags.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneratedCountryFlags.swift; sourceTree = "<group>"; };
 		B2C3D4E52F6209A900BBE6C8 /* CountryFlag.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CountryFlag.swift; sourceTree = "<group>"; };
+		C3D4E5F72F6209A900BBE6C9 /* SessionLogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionLogView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -90,6 +92,7 @@
 				83EE679025F2771700FEBACA /* WineryModel.swift */,
 				83EE679225F2771700FEBACA /* SampleData.swift */,
 				83EE679425F2771700FEBACA /* SessionLogger.swift */,
+				C3D4E5F72F6209A900BBE6C9 /* SessionLogView.swift */,
 				83EE679625F2771700FEBACA /* MailView.swift */,
 				83EE679C25F2771700FEBACA /* WineryLoader.swift */,
 				83EE679A25F2771700FEBACA /* wineries.csv */,
@@ -189,6 +192,7 @@
 				83EE679D25F2771700FEBACA /* WineryLoader.swift in Sources */,
 				A1B2C3D52F6209A900BBE6C7 /* GeneratedCountryFlags.swift in Sources */,
 				B2C3D4E62F6209A900BBE6C8 /* CountryFlag.swift in Sources */,
+				C3D4E5F82F6209A900BBE6C9 /* SessionLogView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

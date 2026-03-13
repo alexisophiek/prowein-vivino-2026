@@ -66,6 +66,7 @@ struct ContentView: View {
     @State private var contactName = ""
     @State private var contactEmail = ""
     @State private var showMail = false
+    @State private var showSessionLog = false
     @State private var errorMessage = ""
     @State private var mailRecipient = ""
     @State private var mailSubject = ""
@@ -78,8 +79,10 @@ struct ContentView: View {
     /// Top suggestions shown while typing (capped to keep dropdown snappy).
     var suggestions: [Winery] {
         guard query.count >= 2 else { return [] }
-        let q = query.lowercased()
-        return Array(wineries.lazy.filter { $0.name.lowercased().contains(q) }.prefix(8))
+        let q = query.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+        return Array(wineries.lazy.filter {
+            $0.name.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current).contains(q)
+        }.prefix(8))
     }
 
     var body: some View {
@@ -118,12 +121,31 @@ struct ContentView: View {
                 }
             }
             .onSubmit(of: .search) {
-                winery = wineries.first { $0.name.localizedCaseInsensitiveContains(query) }
+                let q = query.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+                winery = wineries.first {
+                    $0.name.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current).contains(q)
+                }
             }
             .autocorrectionDisabled()
             .navigationBarTitleDisplayMode(.inline)
         }
         .ignoresSafeArea(.keyboard, edges: .bottom)
+        .overlay(alignment: .bottomTrailing) {
+            Button { showSessionLog = true } label: {
+                Image(systemName: "list.clipboard")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 52, height: 52)
+                    .background(vivinoRed)
+                    .clipShape(Circle())
+                    .shadow(color: .black.opacity(0.18), radius: 6, x: 0, y: 3)
+            }
+            .padding(.trailing, spacingXL)
+            .padding(.bottom, spacingXL)
+        }
+        .fullScreenCover(isPresented: $showSessionLog) {
+            SessionLogView()
+        }
         .sheet(isPresented: $showMail) {
             MailView(recipient: mailRecipient, subject: mailSubject,
                      body: mailBody, isHTML: false,
@@ -154,7 +176,7 @@ struct ContentView: View {
             .padding(.top, spacingXS)
 
             Button(action: { isRecording.toggle() }) {
-                Label(isRecording ? "Recording" : "Paused", systemImage: isRecording ? "record.circle.fill" : "record.circle")
+                Label(isRecording ? "Live" : "Paused", systemImage: isRecording ? "record.circle.fill" : "record.circle")
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(isRecording ? vivinoRed : .secondary)
                     .symbolRenderingMode(isRecording ? .monochrome : .hierarchical)
@@ -231,8 +253,12 @@ struct ContentView: View {
             errorMessage = "Please enter a valid email address."
             return
         }
+
+        SessionLogger.log(winery: w, contactName: contactName,
+                          contactEmail: contactEmail, isRecording: isRecording)
+
         guard MFMailComposeViewController.canSendMail() else {
-            errorMessage = "Mail is not configured on this device."
+            errorMessage = "Mail is not configured on this device. Session was still recorded."
             return
         }
 
@@ -264,8 +290,6 @@ struct ContentView: View {
         The Vivino Partner Team
         """
 
-        SessionLogger.log(winery: w, contactName: contactName,
-                          contactEmail: contactEmail, isRecording: isRecording)
         showMail = true
         contactName = ""
         contactEmail = ""
