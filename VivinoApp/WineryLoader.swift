@@ -80,6 +80,8 @@ enum WineryLoader {
         case "claimed", "unclaimed", "sponsor": wineryStatus = rawStatus
         default: wineryStatus = "unclaimed"
         }
+        let wineryIdRaw = fields.count >= 20 ? fields[19].trimmingCharacters(in: .whitespaces) : ""
+        let wineryId: Int? = Int(wineryIdRaw) ?? Double(wineryIdRaw).map { Int($0) }
 
         return Winery(
             name: name,
@@ -100,7 +102,8 @@ enum WineryLoader {
             newToBrandOrders12m: newToBrandOrders12m,
             topEngagedCountryPageviews: topEngagedCountryPageviews,
             topEngagedCountryBottlesSold: topEngagedCountryBottlesSold,
-            wineryStatus: wineryStatus
+            wineryStatus: wineryStatus,
+            wineryId: wineryId
         )
     }
 }
