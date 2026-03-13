@@ -83,12 +83,16 @@ struct ContentView: View {
     @State private var showMail = false
     /// When session is paused, hold winery/contact until Mail or share sheet confirms send, then log.
     @State private var pendingLog: (winery: Winery, name: String, email: String)? = nil
+    /// Cached so typing in contact form doesn't re-run the 250k filter on every keystroke (fixes contact-form keyboard lag).
+    @State private var cachedSuggestions: [Winery] = []
 
-    /// Suggestions use debounced query to avoid filtering 250k+ wineries on every keystroke (fixes keyboard lag).
-    var suggestions: [Winery] {
-        guard debouncedQuery.count >= 2 else { return [] }
+    private func updateSuggestions() {
+        guard debouncedQuery.count >= 2 else {
+            cachedSuggestions = []
+            return
+        }
         let q = debouncedQuery.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
-        return Array(wineries.lazy.filter {
+        cachedSuggestions = Array(wineries.lazy.filter {
             $0.name.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current).contains(q)
         }.prefix(8))
     }
@@ -118,7 +122,7 @@ struct ContentView: View {
                 }
             }
             .searchable(text: $query, prompt: "Search winery name") {
-                ForEach(suggestions) { w in
+                ForEach(cachedSuggestions) { w in
                     Button {
                         query = w.name
                         debouncedQuery = w.name
@@ -137,11 +141,16 @@ struct ContentView: View {
             .onChange(of: query) { _, newValue in
                 Task { @MainActor in
                     try? await Task.sleep(nanoseconds: 150_000_000)
-                    if query == newValue { debouncedQuery = newValue }
+                    if query == newValue {
+                        debouncedQuery = newValue
+                        updateSuggestions()
+                    }
                 }
             }
+            .onChange(of: debouncedQuery) { _, _ in updateSuggestions() }
             .onSubmit(of: .search) {
                 debouncedQuery = query
+                updateSuggestions()
                 let q = query.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
                 winery = wineries.first {
                     $0.name.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current).contains(q)
@@ -196,6 +205,7 @@ struct ContentView: View {
             if wineries.isEmpty {
                 wineries = sampleWineries
             }
+            updateSuggestions()
         }
     }
 
@@ -250,6 +260,8 @@ struct ContentView: View {
         }
     }
 
+    /// Contact form: pure entry only (name, email). No winery lookup while typing.
+    /// On Send, logs to session with the current winery already loaded on the page (no 250k reference).
     var sendReportSection: some View {
         VStack(alignment: .leading, spacing: 0) {
             Form {
