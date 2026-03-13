@@ -1,5 +1,4 @@
 import SwiftUI
-import MessageUI
 import UIKit
 
 // MARK: - Vivino brand (accent only; system colors elsewhere for Apple feel)
@@ -65,14 +64,12 @@ struct ContentView: View {
     @State private var query = ""
     @State private var contactName = ""
     @State private var contactEmail = ""
-    @State private var showMail = false
     @State private var showSessionLog = false
     @State private var errorMessage = ""
-    @State private var mailRecipient = ""
-    @State private var mailSubject = ""
-    @State private var mailBody = ""
-    @State private var mailAttachment: Data? = nil
-    @State private var mailAttachmentName: String = "report.pdf"
+    @State private var showShareSheet = false
+    @State private var sharePDFData: Data? = nil
+    @State private var shareFileName: String = "report.pdf"
+    @State private var shareEmailSuggestion: String? = nil
     @State private var wineries: [Winery] = []
     @State private var winery: Winery? = nil
 
@@ -87,23 +84,28 @@ struct ContentView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: spacingXL) {
-                    headerView
-                    if let w = winery {
-                        WineryCardView(winery: w)
-                        sendReportSection
-                    } else if !query.isEmpty {
-                        Text("No winery found. Try another name.")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                            .frame(maxWidth: .infinity)
-                            .padding(.top, spacingXL * 2)
+            VStack(spacing: 0) {
+                ScrollView {
+                    VStack(spacing: spacingXL) {
+                        headerView
+                        if let w = winery {
+                            WineryCardView(winery: w)
+                        } else if !query.isEmpty {
+                            Text("No winery found. Try another name.")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                                .frame(maxWidth: .infinity)
+                                .padding(.top, spacingXL * 2)
+                        }
                     }
+                    .padding(spacingXL)
                 }
-                .padding(spacingXL)
+                .background(Color(.systemGroupedBackground))
+
+                if winery != nil {
+                    sendReportSection
+                }
             }
-            .background(Color(.systemGroupedBackground))
             .searchable(text: $query, prompt: "Search winery name") {
                 ForEach(suggestions) { w in
                     Button {
@@ -146,12 +148,12 @@ struct ContentView: View {
         .fullScreenCover(isPresented: $showSessionLog) {
             SessionLogView()
         }
-        .sheet(isPresented: $showMail) {
-            MailView(recipient: mailRecipient, subject: mailSubject,
-                     body: mailBody, isHTML: false,
-                     attachmentData: mailAttachment,
-                     attachmentFileName: mailAttachmentName,
-                     isPresented: $showMail)
+        .sheet(isPresented: $showShareSheet) {
+            if let data = sharePDFData {
+                ShareSheet(pdfData: data, fileName: shareFileName,
+                           emailSuggestion: shareEmailSuggestion,
+                           isPresented: $showShareSheet)
+            }
         }
         .onAppear {
             wineries = WineryLoader.loadFromBundle()
@@ -186,56 +188,57 @@ struct ContentView: View {
     }
 
     var sendReportSection: some View {
-        VStack(alignment: .leading, spacing: spacingM) {
-            Text("Send Report")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 0) {
+            Form {
+                Section {
+                    TextField("Contact name", text: $contactName)
+                        .submitLabel(.next)
+                    TextField("Email", text: $contactEmail)
+                        .keyboardType(.emailAddress)
+                        .autocorrectionDisabled()
+                        .autocapitalization(.none)
+                        .submitLabel(.done)
+                } header: {
+                    Text("Send Report")
+                } footer: {
+                    VStack(spacing: spacingXS) {
+                        if !errorMessage.isEmpty {
+                            Text(errorMessage)
+                                .font(.caption)
+                                .foregroundStyle(vivinoRed)
+                                .frame(maxWidth: .infinity)
+                        }
+                        Text("Contact is saved on this device. Choose Mail, Gmail, Outlook, or any app to send the report.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        if !isRecording {
+                            Text("Session paused — this send will not be logged.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .padding(.top, 4)
+                }
 
-            HStack(spacing: spacingS) {
-                TextField("Contact name", text: $contactName)
-                    .textFieldStyle(.plain)
-                    .padding(spacingS)
-                    .background(Color(.tertiarySystemGroupedBackground))
-                    .clipShape(RoundedRectangle(cornerRadius: cornerRadiusControl))
-
-                TextField("Email", text: $contactEmail)
-                    .textFieldStyle(.plain)
-                    .keyboardType(.emailAddress)
-                    .autocorrectionDisabled()
-                    .autocapitalization(.none)
-                    .padding(spacingS)
-                    .background(Color(.tertiarySystemGroupedBackground))
-                    .clipShape(RoundedRectangle(cornerRadius: cornerRadiusControl))
+                Section {
+                    Button(action: handleSend) {
+                        Text("Send Report")
+                            .font(.body.weight(.semibold))
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 50)
+                            .background(vivinoRed)
+                            .clipShape(RoundedRectangle(cornerRadius: cornerRadiusControl))
+                    }
+                    .listRowBackground(vivinoRed)
+                    .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16))
+                }
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
             }
-
-            if !errorMessage.isEmpty {
-                Text(errorMessage)
-                    .font(.caption)
-                    .foregroundStyle(vivinoRed)
-            }
-
-            Button(action: handleSend) {
-                Text("Send Report")
-                    .font(.body.weight(.semibold))
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 50)
-                    .background(vivinoRed)
-                    .clipShape(RoundedRectangle(cornerRadius: cornerRadiusControl))
-            }
-            .buttonStyle(.plain)
-
-            if !isRecording {
-                Text("Session paused — this send will not be logged.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .center)
-            }
+            .scrollContentBackground(.hidden)
         }
-        .padding(spacingL)
-        .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(RoundedRectangle(cornerRadius: cornerRadiusCard))
     }
 
     func handleSend() {
@@ -257,22 +260,14 @@ struct ContentView: View {
         SessionLogger.log(winery: w, contactName: contactName,
                           contactEmail: contactEmail, isRecording: isRecording)
 
-        guard MFMailComposeViewController.canSendMail() else {
-            errorMessage = "Mail is not configured on this device. Session was still recorded."
-            return
-        }
-
         // Generate branded PDF report
         let pdfData = ReportPDFGenerator.generate(winery: w, contactName: contactName)
         let safeName = w.name
             .replacingOccurrences(of: " ", with: "-")
             .replacingOccurrences(of: "/", with: "-")
+        let fileName = "Vivino-Report-\(safeName).pdf"
 
-        mailRecipient = contactEmail
-        mailSubject = "Your Vivino Report — \(w.name)"
-        mailAttachment = pdfData
-        mailAttachmentName = "Vivino-Report-\(safeName).pdf"
-        mailBody = """
+        let bodyText = """
         Hi \(contactName),
 
         It was great connecting with you at ProWein 2026!
@@ -290,7 +285,12 @@ struct ContentView: View {
         The Vivino Partner Team
         """
 
-        showMail = true
+        // Use share sheet so the user can send with any app (Mail, Gmail, Outlook, etc.) — not tied to Apple Mail.
+        sharePDFData = pdfData
+        shareFileName = fileName
+        shareEmailSuggestion = "To: \(contactEmail)\nSubject: Your Vivino Report — \(w.name)\n\n\(bodyText)"
+        showShareSheet = true
+
         contactName = ""
         contactEmail = ""
     }
@@ -346,14 +346,19 @@ struct WineryCardView: View {
                         .clipShape(Capsule())
 
                     if let url = profileURL {
-                        Link(destination: url) {
-                            Text("Profile preview")
-                                .font(.caption.weight(.medium))
-                                .foregroundStyle(.white)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 5)
-                                .background(vivinoRed)
-                                .clipShape(Capsule())
+                        VStack(spacing: 4) {
+                            Link(destination: url) {
+                                Text("Profile preview")
+                                    .font(.caption.weight(.medium))
+                                    .foregroundStyle(.white)
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 5)
+                                    .background(vivinoRed)
+                                    .clipShape(Capsule())
+                            }
+                            Text("Opens in browser")
+                                .font(.caption2)
+                                .foregroundStyle(.tertiary)
                         }
                     }
                 }
