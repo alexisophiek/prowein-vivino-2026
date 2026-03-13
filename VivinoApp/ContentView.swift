@@ -83,6 +83,8 @@ struct ContentView: View {
     @State private var showMail = false
     /// When session is paused, hold winery/contact until Mail or share sheet confirms send, then log.
     @State private var pendingLog: (winery: Winery, name: String, email: String)? = nil
+    /// When session is live we presave and get a session id; when email is sent we update this same record.
+    @State private var lastLoggedSessionId: String? = nil
     /// Cached so typing in contact form doesn't re-run the 250k filter on every keystroke (fixes contact-form keyboard lag).
     @State private var cachedSuggestions: [Winery] = []
 
@@ -198,10 +200,11 @@ struct ContentView: View {
                      attachmentData: mailAttachment,
                      attachmentFileName: mailAttachmentName,
                      isPresented: $showMail,
+                     sessionId: lastLoggedSessionId,
                      winery: pendingLog?.winery,
                      contactName: pendingLog?.name,
                      contactEmail: pendingLog?.email,
-                     onSent: { pendingLog = nil })
+                     onSent: { lastLoggedSessionId = nil; pendingLog = nil })
         }
         .sheet(isPresented: $showShareSheet) {
             if let data = sharePDFData {
@@ -209,8 +212,12 @@ struct ContentView: View {
                            emailSuggestion: shareEmailSuggestion,
                            isPresented: $showShareSheet,
                            onDismiss: {
+                               if let id = lastLoggedSessionId {
+                                   SessionLogger.updateSession(id: id, emailSentAt: Date())
+                                   lastLoggedSessionId = nil
+                               }
                                if let p = pendingLog {
-                                   SessionLogger.log(winery: p.winery, contactName: p.name, contactEmail: p.email, isRecording: false)
+                                   _ = SessionLogger.log(winery: p.winery, contactName: p.name, contactEmail: p.email, isRecording: false, emailSentAt: Date())
                                    pendingLog = nil
                                }
                            })
@@ -358,13 +365,13 @@ struct ContentView: View {
         }
 
         if isRecording {
-            SessionLogger.log(winery: w, contactName: contactName,
-                              contactEmail: contactEmail, isRecording: true)
+            lastLoggedSessionId = SessionLogger.log(winery: w, contactName: contactName,
+                                                     contactEmail: contactEmail, isRecording: true, emailSentAt: nil)
         } else {
             pendingLog = (w, contactName, contactEmail)
         }
 
-        // Generate branded PDF report
+        // Generate branded PDF report (Mail composer gets Data directly so recipient receives attachment)
         let pdfData = ReportPDFGenerator.generate(winery: w, contactName: contactName)
         let safeName = w.name
             .replacingOccurrences(of: " ", with: "-")
@@ -535,17 +542,11 @@ struct WineryCardView: View {
         .clipShape(RoundedRectangle(cornerRadius: cornerRadiusControl))
     }
 
-    /// Top engaged country excluding origin (data may have origin in CSV; we hide it).
-    private func countryOutsideOrigin(_ value: String?) -> String? {
-        guard let v = value, !v.isEmpty else { return nil }
-        return v.trimmingCharacters(in: .whitespaces).lowercased() == winery.country.trimmingCharacters(in: .whitespaces).lowercased() ? nil : v
-    }
-
     private var mostEngagedSection: some View {
-        let pageviewsCountry = countryOutsideOrigin(winery.topEngagedCountryPageviews)
-        let bottlesCountry = countryOutsideOrigin(winery.topEngagedCountryBottlesSold)
+        let pageviewsCountry: String? = winery.topEngagedCountryPageviews.isEmpty ? nil : winery.topEngagedCountryPageviews
+        let bottlesCountry: String? = winery.topEngagedCountryBottlesSold.flatMap { $0.isEmpty ? nil : $0 }
         return VStack(alignment: .leading, spacing: spacingS) {
-            Text("Most engaged country (outside origin)")
+            Text("Most engaged country")
                 .font(.caption)
                 .foregroundStyle(.secondary)
             HStack(spacing: 0) {

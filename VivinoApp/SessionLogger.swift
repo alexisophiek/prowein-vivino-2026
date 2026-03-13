@@ -1,13 +1,14 @@
 import Foundation
 
-/// Logs contact captures to a local CSV in the app's Documents directory. No network; works fully offline.
-struct SessionRecord: Identifiable {
-    let id = UUID()
+/// A single session log entry. Stored in JSON with a stable id so we can update when email is sent.
+struct SessionRecord: Identifiable, Codable {
+    let id: String
     let timestamp: String
     let wineryName: String
     let country: String
     let contactName: String
     let contactEmail: String
+    var emailSentAt: String?
     let globalRating: String
     let ratingsCount: String
     let winesListed: String
@@ -32,86 +33,121 @@ struct SessionRecord: Identifiable {
         display.timeStyle = .short
         return display.string(from: date)
     }
+
+    var displaySentAt: String {
+        if let sent = emailSentAt, !sent.isEmpty, let date = ISO8601DateFormatter().date(from: sent) {
+            let f = DateFormatter()
+            f.dateStyle = .medium
+            f.timeStyle = .short
+            return f.string(from: date)
+        }
+        return "—"
+    }
 }
 
+private let sessionFile = "prowein2026_sessions.json"
+private let exportCSVFile = "prowein2026_session.csv"
+
 struct SessionLogger {
-    /// Log a sent report. Always logs when a report is sent, even if session is paused.
+    private static var fileURL: URL {
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent(sessionFile)
+    }
+
+    private static var exportCSVURL: URL {
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent(exportCSVFile)
+    }
+
+    /// Log a session (presave before send or when paused and email sent). Returns session id for later update.
     static func log(
         winery: Winery,
         contactName: String,
         contactEmail: String,
-        isRecording: Bool
-    ) {
-        let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        let fileURL = docs.appendingPathComponent("prowein2026_session.csv")
-
-        let header = "timestamp,wineryName,country,contactName,contactEmail," +
-            "globalRating,ratingsCount,winesListed," +
-            "pageviews12m,pageviewRankPercent,pageviewRankTotal," +
-            "scans12m,scanRankPercent,scanRankTotal," +
-            "buyButtonCoverage,bottlesSold12m," +
-            "newToBrandPageviews12m,newToBrandOrders12m," +
-            "topEngagedCountryPageviews,topEngagedCountryBottlesSold\n"
-
+        isRecording: Bool,
+        emailSentAt: Date? = nil
+    ) -> String {
+        let id = UUID().uuidString
         let timestamp = ISO8601DateFormatter().string(from: Date())
-        let row = [
-            timestamp, winery.name, winery.country,
-            contactName, contactEmail,
-            String(winery.globalRating), String(winery.ratingsCount),
-            String(winery.winesListed),
-            String(winery.pageviews12m), String(winery.pageviewRankPercent),
-            String(winery.pageviewRankTotal), String(winery.scans12m),
-            String(winery.scanRankPercent), String(winery.scanRankTotal),
-            String(winery.buyButtonCoverage), String(winery.bottlesSold12m),
-            String(winery.newToBrandPageviews12m), String(winery.newToBrandOrders12m),
-            winery.topEngagedCountryPageviews,
-            winery.topEngagedCountryBottlesSold ?? ""
-        ].joined(separator: ",") + "\n"
+        let record = SessionRecord(
+            id: id,
+            timestamp: timestamp,
+            wineryName: winery.name,
+            country: winery.country,
+            contactName: contactName,
+            contactEmail: contactEmail,
+            emailSentAt: emailSentAt.map { ISO8601DateFormatter().string(from: $0) },
+            globalRating: String(winery.globalRating),
+            ratingsCount: String(winery.ratingsCount),
+            winesListed: String(winery.winesListed),
+            pageviews12m: String(winery.pageviews12m),
+            pageviewRankPercent: String(winery.pageviewRankPercent),
+            pageviewRankTotal: String(winery.pageviewRankTotal),
+            scans12m: String(winery.scans12m),
+            scanRankPercent: String(winery.scanRankPercent),
+            scanRankTotal: String(winery.scanRankTotal),
+            buyButtonCoverage: String(winery.buyButtonCoverage),
+            bottlesSold12m: String(winery.bottlesSold12m),
+            newToBrandPageviews12m: String(winery.newToBrandPageviews12m),
+            newToBrandOrders12m: String(winery.newToBrandOrders12m),
+            topEngagedCountryPageviews: winery.topEngagedCountryPageviews,
+            topEngagedCountryBottlesSold: winery.topEngagedCountryBottlesSold ?? ""
+        )
+        var list = loadAllRecords()
+        list.append(record)
+        saveRecords(list)
+        return id
+    }
 
-        if !FileManager.default.fileExists(atPath: fileURL.path) {
-            try? (header + row).write(to: fileURL, atomically: true, encoding: .utf8)
-        } else {
-            guard let rowData = row.data(using: .utf8),
-                  let handle = try? FileHandle(forWritingTo: fileURL) else { return }
-            defer { try? handle.close() }
-            handle.seekToEndOfFile()
-            handle.write(rowData)
-        }
+    /// Update an existing session when the email was actually sent.
+    static func updateSession(id sessionId: String, emailSentAt: Date) {
+        let sent = ISO8601DateFormatter().string(from: emailSentAt)
+        var list = loadAllRecords()
+        guard let idx = list.firstIndex(where: { $0.id == sessionId }) else { return }
+        list[idx].emailSentAt = sent
+        saveRecords(list)
     }
 
     static func loadAll() -> [SessionRecord] {
-        let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        let fileURL = docs.appendingPathComponent("prowein2026_session.csv")
-        guard let content = try? String(contentsOf: fileURL, encoding: .utf8) else { return [] }
+        loadAllRecords().reversed()
+    }
 
-        let lines = content.components(separatedBy: "\n").filter { !$0.isEmpty }
-        guard lines.count > 1 else { return [] }
-
-        return lines.dropFirst().compactMap { line in
-            let cols = line.components(separatedBy: ",")
-            guard cols.count >= 20 else { return nil }
-            return SessionRecord(
-                timestamp: cols[0],
-                wineryName: cols[1],
-                country: cols[2],
-                contactName: cols[3],
-                contactEmail: cols[4],
-                globalRating: cols[5],
-                ratingsCount: cols[6],
-                winesListed: cols[7],
-                pageviews12m: cols[8],
-                pageviewRankPercent: cols[9],
-                pageviewRankTotal: cols[10],
-                scans12m: cols[11],
-                scanRankPercent: cols[12],
-                scanRankTotal: cols[13],
-                buyButtonCoverage: cols[14],
-                bottlesSold12m: cols[15],
-                newToBrandPageviews12m: cols[16],
-                newToBrandOrders12m: cols[17],
-                topEngagedCountryPageviews: cols[18],
-                topEngagedCountryBottlesSold: cols[19]
-            )
+    /// Export current records to CSV for Share (Session Log share button).
+    static func exportToCSV(records: [SessionRecord]) -> URL {
+        let header = "id,timestamp,wineryName,country,contactName,contactEmail,emailSentAt," +
+            "globalRating,ratingsCount,winesListed,pageviews12m,pageviewRankPercent,pageviewRankTotal," +
+            "scans12m,scanRankPercent,scanRankTotal,buyButtonCoverage,bottlesSold12m," +
+            "newToBrandPageviews12m,newToBrandOrders12m,topEngagedCountryPageviews,topEngagedCountryBottlesSold\n"
+        let rows = records.reversed().map { r in
+            [r.id, r.timestamp, r.wineryName, r.country, r.contactName, r.contactEmail, r.emailSentAt ?? "",
+             r.globalRating, r.ratingsCount, r.winesListed, r.pageviews12m, r.pageviewRankPercent, r.pageviewRankTotal,
+             r.scans12m, r.scanRankPercent, r.scanRankTotal, r.buyButtonCoverage, r.bottlesSold12m,
+             r.newToBrandPageviews12m, r.newToBrandOrders12m, r.topEngagedCountryPageviews, r.topEngagedCountryBottlesSold]
+                .map { escapeCSV($0) }
+                .joined(separator: ",")
         }
+        let content = header + rows.joined(separator: "\n")
+        try? content.write(to: exportCSVURL, atomically: true, encoding: .utf8)
+        return exportCSVURL
+    }
+
+    private static func escapeCSV(_ s: String) -> String {
+        if s.contains(",") || s.contains("\"") || s.contains("\n") {
+            return "\"" + s.replacingOccurrences(of: "\"", with: "\"\"") + "\""
+        }
+        return s
+    }
+
+    private static func loadAllRecords() -> [SessionRecord] {
+        guard let data = try? Data(contentsOf: fileURL),
+              let list = try? JSONDecoder().decode([SessionRecord].self, from: data) else {
+            return []
+        }
+        return list
+    }
+
+    private static func saveRecords(_ list: [SessionRecord]) {
+        guard let data = try? JSONEncoder().encode(list) else { return }
+        try? data.write(to: fileURL)
     }
 }

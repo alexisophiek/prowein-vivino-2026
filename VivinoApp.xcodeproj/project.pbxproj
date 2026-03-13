@@ -18,12 +18,12 @@
 		83EE679725F2771700FEBACA /* MailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83EE679625F2771700FEBACA /* MailView.swift */; };
 		83EE679825F2771700FEBACA /* MessageUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 83EE679925F2771700FEBACA /* MessageUI.framework */; };
 		83EE679B25F2771700FEBACA /* wineries.csv in Resources */ = {isa = PBXBuildFile; fileRef = 83EE679A25F2771700FEBACA /* wineries.csv */; };
-		F6A7B8C92F6209A900BBE6CC /* wineries.json in Resources */ = {isa = PBXBuildFile; fileRef = F6A7B8C82F6209A900BBE6CC /* wineries.json */; };
 		83EE679D25F2771700FEBACA /* WineryLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83EE679C25F2771700FEBACA /* WineryLoader.swift */; };
 		A1B2C3D52F6209A900BBE6C7 /* GeneratedCountryFlags.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D42F6209A900BBE6C7 /* GeneratedCountryFlags.swift */; };
 		B2C3D4E62F6209A900BBE6C8 /* CountryFlag.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C3D4E52F6209A900BBE6C8 /* CountryFlag.swift */; };
 		C3D4E5F82F6209A900BBE6C9 /* SessionLogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3D4E5F72F6209A900BBE6C9 /* SessionLogView.swift */; };
 		E5F6A7B82F6209A900BBE6CB /* ShareSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5F6A7B72F6209A900BBE6CB /* ShareSheet.swift */; };
+		F6A7B8C92F6209A900BBE6CC /* wineries.json in Resources */ = {isa = PBXBuildFile; fileRef = F6A7B8C82F6209A900BBE6CC /* wineries.json */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -40,12 +40,12 @@
 		83EE679625F2771700FEBACA /* MailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MailView.swift; sourceTree = "<group>"; };
 		83EE679925F2771700FEBACA /* MessageUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MessageUI.framework; path = System/Library/Frameworks/MessageUI.framework; sourceTree = SDKROOT; };
 		83EE679A25F2771700FEBACA /* wineries.csv */ = {isa = PBXFileReference; lastKnownFileType = text; path = wineries.csv; sourceTree = "<group>"; };
-		F6A7B8C82F6209A900BBE6CC /* wineries.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = wineries.json; sourceTree = "<group>"; };
 		83EE679C25F2771700FEBACA /* WineryLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WineryLoader.swift; sourceTree = "<group>"; };
 		A1B2C3D42F6209A900BBE6C7 /* GeneratedCountryFlags.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneratedCountryFlags.swift; sourceTree = "<group>"; };
 		B2C3D4E52F6209A900BBE6C8 /* CountryFlag.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CountryFlag.swift; sourceTree = "<group>"; };
 		C3D4E5F72F6209A900BBE6C9 /* SessionLogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionLogView.swift; sourceTree = "<group>"; };
 		E5F6A7B72F6209A900BBE6CB /* ShareSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareSheet.swift; sourceTree = "<group>"; };
+		F6A7B8C82F6209A900BBE6CC /* wineries.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = wineries.json; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -335,6 +335,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"VivinoApp/Preview Content\"";
+				DEVELOPMENT_TEAM = CRWXMBF4BM;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = VivinoApp/Info.plist;
@@ -364,6 +365,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"VivinoApp/Preview Content\"";
+				DEVELOPMENT_TEAM = CRWXMBF4BM;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = VivinoApp/Info.plist;
