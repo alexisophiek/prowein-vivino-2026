@@ -9,6 +9,8 @@ struct ShareSheet: UIViewControllerRepresentable {
     /// Optional: suggested recipient, subject, and body so the user can paste into their mail app.
     var emailSuggestion: String? = nil
     @Binding var isPresented: Bool
+    /// Called when the sheet is dismissed (e.g. to log send when session was paused).
+    var onDismiss: (() -> Void)? = nil
 
     func makeUIViewController(context: Context) -> UIActivityViewController {
         let tempDir = FileManager.default.temporaryDirectory
@@ -22,8 +24,12 @@ struct ShareSheet: UIViewControllerRepresentable {
 
         let vc = UIActivityViewController(activityItems: items, applicationActivities: nil)
         vc.completionWithItemsHandler = { _, _, _, _ in
-            try? FileManager.default.removeItem(at: fileURL)
+            onDismiss?()
             isPresented = false
+            // Delete temp file after delay so Mail/other apps can read the attachment (fixes blank PDF for receiver).
+            DispatchQueue.main.asyncAfter(deadline: .now() + 60) {
+                try? FileManager.default.removeItem(at: fileURL)
+            }
         }
         return vc
     }

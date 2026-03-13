@@ -35,14 +35,13 @@ struct SessionRecord: Identifiable {
 }
 
 struct SessionLogger {
+    /// Log a sent report. Always logs when a report is sent, even if session is paused.
     static func log(
         winery: Winery,
         contactName: String,
         contactEmail: String,
         isRecording: Bool
     ) {
-        guard isRecording else { return }
-
         let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         let fileURL = docs.appendingPathComponent("prowein2026_session.csv")
 

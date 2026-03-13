@@ -10,6 +10,10 @@ struct MailView: UIViewControllerRepresentable {
     var attachmentMimeType: String = "application/pdf"
     var attachmentFileName: String = "report.pdf"
     @Binding var isPresented: Bool
+    var winery: Winery? = nil
+    var contactName: String? = nil
+    var contactEmail: String? = nil
+    var onSent: (() -> Void)? = nil
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
@@ -32,6 +36,10 @@ struct MailView: UIViewControllerRepresentable {
         init(_ parent: MailView) { self.parent = parent }
         func mailComposeController(_ controller: MFMailComposeViewController,
                                    didFinishWith result: MFMailComposeResult, error: Error?) {
+            if result == .sent, let w = parent.winery, let name = parent.contactName, let email = parent.contactEmail {
+                SessionLogger.log(winery: w, contactName: name, contactEmail: email, isRecording: false)
+            }
+            parent.onSent?()
             parent.isPresented = false
         }
     }
