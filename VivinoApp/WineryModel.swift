@@ -59,6 +59,51 @@ struct Winery: Identifiable {
         }
     }
 
+    /// Memberwise initializer (used by CSV parsing and SampleData; preserved because we also have init(from: WineryRecord)).
+    init(
+        name: String,
+        region: String,
+        country: String,
+        globalRating: Double,
+        ratingsCount: Int,
+        winesListed: Int,
+        pageviews12m: Int,
+        pageviewRankPercent: Double,
+        pageviewRankTotal: Int,
+        scans12m: Int,
+        scanRankPercent: Double,
+        scanRankTotal: Int,
+        buyButtonCoverage: Double,
+        bottlesSold12m: Int,
+        newToBrandPageviews12m: Int,
+        newToBrandOrders12m: Int,
+        topEngagedCountryPageviews: String,
+        topEngagedCountryBottlesSold: String?,
+        wineryStatus: String,
+        wineryId: Int?
+    ) {
+        self.name = name
+        self.region = region
+        self.country = country
+        self.globalRating = globalRating
+        self.ratingsCount = ratingsCount
+        self.winesListed = winesListed
+        self.pageviews12m = pageviews12m
+        self.pageviewRankPercent = pageviewRankPercent
+        self.pageviewRankTotal = pageviewRankTotal
+        self.scans12m = scans12m
+        self.scanRankPercent = scanRankPercent
+        self.scanRankTotal = scanRankTotal
+        self.buyButtonCoverage = buyButtonCoverage
+        self.bottlesSold12m = bottlesSold12m
+        self.newToBrandPageviews12m = newToBrandPageviews12m
+        self.newToBrandOrders12m = newToBrandOrders12m
+        self.topEngagedCountryPageviews = topEngagedCountryPageviews
+        self.topEngagedCountryBottlesSold = topEngagedCountryBottlesSold
+        self.wineryStatus = wineryStatus
+        self.wineryId = wineryId
+    }
+
     init(from record: WineryRecord) {
         let rawStatus = record.wineryStatus.trimmingCharacters(in: .whitespaces).lowercased()
         let wineryStatus: String
