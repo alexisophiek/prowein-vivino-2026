@@ -54,7 +54,7 @@ private let countryNameToISO: [String: String] = [
     "Pakistan": "pk", "Bangladesh": "bd", "Sri Lanka": "lk", "Nepal": "np", "Myanmar": "mm",
     "Cambodia": "kh", "Laos": "la", "Taiwan": "tw", "Macau": "mo", "Malta": "mt",
     "Iceland": "is", "Estonia": "ee", "Latvia": "lv", "Lithuania": "lt", "Belarus": "by",
-    "Kazakhstan": "kz", "Uzbekistan": "uz", "Azerbaijan": "az", "Armenia": "am", "Kosovo": "xk",
+    "Kazakhstan": "kz", "Uzbekistan": "uz", "Azerbaijan": "az", "Kosovo": "xk",
 ]
 
 /// Returns the 2-letter ISO code for a country display name (e.g. "France" → "fr"), or nil if unknown.
