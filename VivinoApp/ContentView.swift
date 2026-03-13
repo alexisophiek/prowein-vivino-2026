@@ -303,6 +303,11 @@ private let statFont = Font.title2.weight(.semibold)
 struct WineryCardView: View {
     let winery: Winery
 
+    private var profileURL: URL? {
+        guard let wineryId = winery.wineryId else { return nil }
+        return URL(string: "https://www.vivino.com/wineries/\(wineryId)")
+    }
+
     private var ntbPVPct: Int {
         winery.pageviews12m > 0
             ? Int((Double(winery.newToBrandPageviews12m) / Double(winery.pageviews12m)) * 100)
@@ -327,17 +332,31 @@ struct WineryCardView: View {
                         .foregroundStyle(.secondary)
                 }
                 Spacer(minLength: 0)
-                Text(winery.wineryStatusDisplayName)
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(winery.wineryStatus.lowercased() == "sponsor" ? vivinoRed : .secondary)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
-                    .background(
-                        winery.wineryStatus.lowercased() == "sponsor"
-                            ? vivinoRedLight
-                            : Color(.tertiarySystemFill)
-                    )
-                    .clipShape(Capsule())
+                VStack(alignment: .trailing, spacing: 6) {
+                    Text(winery.wineryStatusDisplayName)
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(winery.wineryStatus.lowercased() == "sponsor" ? vivinoRed : .secondary)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(
+                            winery.wineryStatus.lowercased() == "sponsor"
+                                ? vivinoRedLight
+                                : Color(.tertiarySystemFill)
+                        )
+                        .clipShape(Capsule())
+
+                    if let url = profileURL {
+                        Link(destination: url) {
+                            Text("Profile preview")
+                                .font(.caption.weight(.medium))
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 5)
+                                .background(vivinoRed)
+                                .clipShape(Capsule())
+                        }
+                    }
+                }
             }
 
             // Data grid

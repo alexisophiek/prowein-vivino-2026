@@ -9,7 +9,8 @@ let sampleWineries: [Winery] = [
         buyButtonCoverage: 0.0, bottlesSold12m: 0,
         newToBrandPageviews12m: 8200, newToBrandOrders12m: 0,
         topEngagedCountryPageviews: "United States", topEngagedCountryBottlesSold: nil,
-        wineryStatus: "sponsor"
+        wineryStatus: "sponsor",
+        wineryId: 1139
     ),
     Winery(
         name: "Domaine Leflaive", region: "Burgundy", country: "France",
@@ -19,7 +20,8 @@ let sampleWineries: [Winery] = [
         buyButtonCoverage: 0.62, bottlesSold12m: 4200,
         newToBrandPageviews12m: 31400, newToBrandOrders12m: 1180,
         topEngagedCountryPageviews: "United Kingdom", topEngagedCountryBottlesSold: "Germany",
-        wineryStatus: "claimed"
+        wineryStatus: "claimed",
+        wineryId: 15612
     ),
     Winery(
         name: "Ridge Vineyards", region: "Sonoma", country: "USA",
@@ -29,7 +31,8 @@ let sampleWineries: [Winery] = [
         buyButtonCoverage: 0.87, bottlesSold12m: 17300,
         newToBrandPageviews12m: 19600, newToBrandOrders12m: 3240,
         topEngagedCountryPageviews: "Canada", topEngagedCountryBottlesSold: "Sweden",
-        wineryStatus: "unclaimed"
+        wineryStatus: "unclaimed",
+        wineryId: 4573
     ),
     Winery(
         name: "Antinori", region: "Tuscany", country: "Italy",
@@ -39,7 +42,8 @@ let sampleWineries: [Winery] = [
         buyButtonCoverage: 0.74, bottlesSold12m: 28900,
         newToBrandPageviews12m: 88200, newToBrandOrders12m: 7410,
         topEngagedCountryPageviews: "United States", topEngagedCountryBottlesSold: "Netherlands",
-        wineryStatus: "sponsor"
+        wineryStatus: "sponsor",
+        wineryId: 11981
     ),
     Winery(
         name: "Penfolds", region: "South Australia", country: "Australia",
@@ -49,6 +53,7 @@ let sampleWineries: [Winery] = [
         buyButtonCoverage: 0.91, bottlesSold12m: 41200,
         newToBrandPageviews12m: 54100, newToBrandOrders12m: 9830,
         topEngagedCountryPageviews: "United Kingdom", topEngagedCountryBottlesSold: "Germany",
-        wineryStatus: "sponsor"
+        wineryStatus: "sponsor",
+        wineryId: 8230
     )
 ]
