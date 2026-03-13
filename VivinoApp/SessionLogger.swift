@@ -1,5 +1,6 @@
 import Foundation
 
+/// Logs contact captures to a local CSV in the app's Documents directory. No network; works fully offline.
 struct SessionRecord: Identifiable {
     let id = UUID()
     let timestamp: String
@@ -71,11 +72,11 @@ struct SessionLogger {
         if !FileManager.default.fileExists(atPath: fileURL.path) {
             try? (header + row).write(to: fileURL, atomically: true, encoding: .utf8)
         } else {
-            if let handle = try? FileHandle(forWritingTo: fileURL) {
-                handle.seekToEndOfFile()
-                handle.write(row.data(using: .utf8)!)
-                handle.closeFile()
-            }
+            guard let rowData = row.data(using: .utf8),
+                  let handle = try? FileHandle(forWritingTo: fileURL) else { return }
+            defer { try? handle.close() }
+            handle.seekToEndOfFile()
+            handle.write(rowData)
         }
     }
 

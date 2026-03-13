@@ -1,13 +1,45 @@
 import Foundation
 
-/// Loads wineries from `wineries.csv` in the app bundle. Falls back to empty array if file is missing or invalid.
+/// Loads wineries from the app bundle: tries `wineries.json` first (faster, Codable), then `wineries.csv`.
+/// Local only — no network calls. Falls back to empty array if both are missing or invalid.
+/// Result is cached so repeated calls avoid reloading the large file.
 enum WineryLoader {
-    private static let filename = "wineries"
-    private static let `extension` = "csv"
+    private static let jsonFilename = "wineries"
+    private static let jsonExtension = "json"
+    private static let csvFilename = "wineries"
+    private static let csvExtension = "csv"
 
-    /// Load and parse CSV from the main bundle. Returns empty array on failure.
+    private static var cached: [Winery]?
+
+    /// Load from bundle: JSON first (faster in Swift), then CSV fallback. Cached after first load.
     static func loadFromBundle() -> [Winery] {
-        guard let url = Bundle.main.url(forResource: filename, withExtension: `extension`),
+        if let existing = cached { return existing }
+        let wineries: [Winery]
+        if let fromJSON = loadJSON() {
+            wineries = fromJSON
+        } else {
+            wineries = loadCSV()
+        }
+        cached = wineries
+        return wineries
+    }
+
+    /// Load and decode from wineries.json using JSONDecoder (fast, idiomatic Swift).
+    private static func loadJSON() -> [Winery]? {
+        guard let url = Bundle.main.url(forResource: jsonFilename, withExtension: jsonExtension),
+              let data = try? Data(contentsOf: url) else {
+            return nil
+        }
+        let decoder = JSONDecoder()
+        guard let records = try? decoder.decode([WineryRecord].self, from: data) else {
+            return nil
+        }
+        return records.map { Winery(from: $0) }
+    }
+
+    /// Load and parse from wineries.csv. Used when JSON is not present.
+    private static func loadCSV() -> [Winery] {
+        guard let url = Bundle.main.url(forResource: csvFilename, withExtension: csvExtension),
               let data = try? Data(contentsOf: url),
               let string = String(data: data, encoding: .utf8) else {
             return []

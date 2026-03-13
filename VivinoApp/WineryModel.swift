@@ -1,5 +1,29 @@
 import Foundation
 
+/// Codable representation for loading from JSON. Decode into this, then map to Winery.
+struct WineryRecord: Codable {
+    let name: String
+    let region: String
+    let country: String
+    let globalRating: Double
+    let ratingsCount: Int
+    let winesListed: Int
+    let pageviews12m: Int
+    let pageviewRankPercent: Double
+    let pageviewRankTotal: Int
+    let scans12m: Int
+    let scanRankPercent: Double
+    let scanRankTotal: Int
+    let buyButtonCoverage: Double
+    let bottlesSold12m: Int
+    let newToBrandPageviews12m: Int
+    let newToBrandOrders12m: Int
+    let topEngagedCountryPageviews: String
+    let topEngagedCountryBottlesSold: String?
+    let wineryStatus: String
+    let wineryId: Double?  // CSV/JSON often use float; we convert to Int?
+}
+
 struct Winery: Identifiable {
     let id = UUID()
     let name: String
@@ -33,5 +57,36 @@ struct Winery: Identifiable {
         case "unclaimed": return "Unclaimed"
         default: return wineryStatus.isEmpty ? "Unclaimed" : wineryStatus.prefix(1).uppercased() + wineryStatus.dropFirst().lowercased()
         }
+    }
+
+    init(from record: WineryRecord) {
+        let rawStatus = record.wineryStatus.trimmingCharacters(in: .whitespaces).lowercased()
+        let wineryStatus: String
+        switch rawStatus {
+        case "claimed", "unclaimed", "sponsor": wineryStatus = rawStatus
+        default: wineryStatus = "unclaimed"
+        }
+        self.init(
+            name: record.name,
+            region: record.region,
+            country: record.country,
+            globalRating: record.globalRating,
+            ratingsCount: record.ratingsCount,
+            winesListed: record.winesListed,
+            pageviews12m: record.pageviews12m,
+            pageviewRankPercent: record.pageviewRankPercent,
+            pageviewRankTotal: record.pageviewRankTotal,
+            scans12m: record.scans12m,
+            scanRankPercent: record.scanRankPercent,
+            scanRankTotal: record.scanRankTotal,
+            buyButtonCoverage: record.buyButtonCoverage,
+            bottlesSold12m: record.bottlesSold12m,
+            newToBrandPageviews12m: record.newToBrandPageviews12m,
+            newToBrandOrders12m: record.newToBrandOrders12m,
+            topEngagedCountryPageviews: record.topEngagedCountryPageviews,
+            topEngagedCountryBottlesSold: record.topEngagedCountryBottlesSold,
+            wineryStatus: wineryStatus,
+            wineryId: record.wineryId.map { Int($0) }
+        )
     }
 }

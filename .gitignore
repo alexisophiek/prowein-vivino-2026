@@ -12,3 +12,6 @@ xcuserdata/
 
 # macOS
 .DS_Store
+
+# Large generated data (regenerate with Scripts/csv_to_json.py)
+VivinoApp/wineries.json
