@@ -22,6 +22,8 @@ struct Winery: Identifiable {
     let topEngagedCountryBottlesSold: String?  // top bottles-sold country outside origin. nil if no sales
     /// Winery status: "claimed", "unclaimed", or "sponsor". In UI, "sponsor" is displayed as "Partner".
     let wineryStatus: String
+    /// Vivino numeric winery ID. Used for profile preview link. nil when not available in data.
+    let wineryId: Int?
 
     /// Display label for status: "Partner" when sponsor, otherwise capitalized (e.g. "Claimed", "Unclaimed").
     var wineryStatusDisplayName: String {
