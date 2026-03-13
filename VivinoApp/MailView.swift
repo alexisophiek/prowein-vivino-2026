@@ -10,6 +10,8 @@ struct MailView: UIViewControllerRepresentable {
     var attachmentMimeType: String = "application/pdf"
     var attachmentFileName: String = "report.pdf"
     @Binding var isPresented: Bool
+    /// When set (live session), we update this session with emailSentAt instead of logging a new one.
+    var sessionId: String? = nil
     var winery: Winery? = nil
     var contactName: String? = nil
     var contactEmail: String? = nil
@@ -36,8 +38,12 @@ struct MailView: UIViewControllerRepresentable {
         init(_ parent: MailView) { self.parent = parent }
         func mailComposeController(_ controller: MFMailComposeViewController,
                                    didFinishWith result: MFMailComposeResult, error: Error?) {
-            if result == .sent, let w = parent.winery, let name = parent.contactName, let email = parent.contactEmail {
-                SessionLogger.log(winery: w, contactName: name, contactEmail: email, isRecording: false)
+            if result == .sent {
+                if let id = parent.sessionId {
+                    SessionLogger.updateSession(id: id, emailSentAt: Date())
+                } else if let w = parent.winery, let name = parent.contactName, let email = parent.contactEmail {
+                    _ = SessionLogger.log(winery: w, contactName: name, contactEmail: email, isRecording: false, emailSentAt: Date())
+                }
             }
             parent.onSent?()
             parent.isPresented = false

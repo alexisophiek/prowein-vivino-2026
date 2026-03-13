@@ -16,10 +16,7 @@ struct SessionLogView: View {
         }
     }
 
-    private var csvFileURL: URL {
-        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("prowein2026_session.csv")
-    }
+    @State private var csvShareURL: URL? = nil
 
     var body: some View {
         NavigationStack {
@@ -58,17 +55,22 @@ struct SessionLogView: View {
                         .fontWeight(.semibold)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    if !records.isEmpty {
+                    if !records.isEmpty, let url = csvShareURL {
                         ShareLink(
-                            item: csvFileURL,
-                            preview: SharePreview("ProWein 2026 Session Log", image: Image(systemName: "tablecells"))
+                            item: url,
+                            preview: SharePreview("Prowein 2026 Session Log", image: Image(systemName: "tablecells"))
                         ) {
                             Image(systemName: "square.and.arrow.up")
                         }
                     }
                 }
             }
-            .onAppear { records = SessionLogger.loadAll().reversed() }
+            .onAppear {
+                records = SessionLogger.loadAll().reversed()
+                if !records.isEmpty {
+                    csvShareURL = SessionLogger.exportToCSV(records: records)
+                }
+            }
         }
     }
 }
@@ -83,7 +85,7 @@ struct SessionDetailView: View {
             Section("Contact") {
                 detailRow("Name", record.contactName)
                 detailRow("Email", record.contactEmail)
-                detailRow("Sent", record.displayTimestamp)
+                detailRow("Sent", record.displaySentAt)
             }
 
             Section("Winery") {
@@ -108,19 +110,14 @@ struct SessionDetailView: View {
                 detailRow("New-to-Brand Orders", record.newToBrandOrders12m)
             }
 
-            Section("Top Engaged Country (outside origin)") {
-                detailRow("By Pageviews", topEngagedDisplay(record.topEngagedCountryPageviews))
-                detailRow("By Bottles Sold", record.topEngagedCountryBottlesSold.isEmpty ? "—" : topEngagedDisplay(record.topEngagedCountryBottlesSold))
+            Section("Top Engaged Country") {
+                detailRow("By Pageviews", record.topEngagedCountryPageviews.isEmpty ? "—" : record.topEngagedCountryPageviews)
+                detailRow("By Bottles Sold", record.topEngagedCountryBottlesSold.isEmpty ? "— No sales yet" : record.topEngagedCountryBottlesSold)
             }
         }
         .listStyle(.insetGrouped)
         .navigationTitle(record.wineryName)
         .navigationBarTitleDisplayMode(.inline)
-    }
-
-    private func topEngagedDisplay(_ value: String) -> String {
-        guard !value.isEmpty else { return "—" }
-        return value.trimmingCharacters(in: .whitespaces).lowercased() == record.country.trimmingCharacters(in: .whitespaces).lowercased() ? "—" : value
     }
 
     private func detailRow(_ label: String, _ value: String) -> some View {

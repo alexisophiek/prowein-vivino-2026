@@ -17,16 +17,20 @@ struct ReportPDFGenerator {
     // MARK: - Public API
 
     /// Returns PDF data for the given winery, addressed to `contactName`.
+    /// Uses A4 to keep file size down and suit international (e.g. ProWein) recipients.
     static func generate(winery w: Winery, contactName: String) -> Data {
-        let pageWidth: CGFloat = 612   // US Letter
-        let pageHeight: CGFloat = 792
-        let margin: CGFloat = 48
+        let pageWidth: CGFloat = 595.28   // A4
+        let pageHeight: CGFloat = 841.89
+        let margin: CGFloat = 40
         let contentWidth = pageWidth - margin * 2
 
         let renderer = UIGraphicsPDFRenderer(bounds: CGRect(x: 0, y: 0, width: pageWidth, height: pageHeight))
 
         return renderer.pdfData { ctx in
             ctx.beginPage()
+            // PDF uses bottom-left origin, Y-up; flip so we can draw with top-left origin (UIKit style).
+            ctx.cgContext.translateBy(x: 0, y: pageHeight)
+            ctx.cgContext.scaleBy(x: 1, y: -1)
             var y: CGFloat = margin
 
             // ── Header bar ──────────────────────────────────────────────
@@ -45,7 +49,7 @@ struct ReportPDFGenerator {
                 withAttributes: logoAttr
             )
 
-            let tagline = "ProWein 2026 · Winery Report"
+            let tagline = "Prowein 2026 · Winery Report"
             let tagAttr: [NSAttributedString.Key: Any] = [
                 .font: regular(13),
                 .foregroundColor: UIColor.white.withAlphaComponent(0.85)
@@ -138,7 +142,7 @@ struct ReportPDFGenerator {
             y += barHeight + 24
 
             // ── Most engaged countries ──────────────────────────────────
-            let engLabel = "Most Engaged Country (outside origin)"
+            let engLabel = "Most Engaged Country"
             (engLabel as NSString).draw(at: CGPoint(x: margin, y: y), withAttributes: bbLabelAttr)
             y += 20
 
@@ -146,16 +150,11 @@ struct ReportPDFGenerator {
             let engSub: [NSAttributedString.Key: Any] = [.font: regular(11), .foregroundColor: mediumGray]
 
             ("By pageviews" as NSString).draw(at: CGPoint(x: margin, y: y), withAttributes: engSub)
-            let pvCountry = excludeOrigin(w.topEngagedCountryPageviews, origin: w.country)
+            let pvCountry = w.topEngagedCountryPageviews.isEmpty ? "—" : w.topEngagedCountryPageviews
             (pvCountry as NSString).draw(at: CGPoint(x: margin, y: y + 16), withAttributes: engAttr)
 
             ("By bottles sold" as NSString).draw(at: CGPoint(x: margin + colWidth, y: y), withAttributes: engSub)
-            let bottlesCountry: String
-            if let b = w.topEngagedCountryBottlesSold, !b.isEmpty {
-                bottlesCountry = excludeOrigin(b, origin: w.country)
-            } else {
-                bottlesCountry = "No sales yet"
-            }
+            let bottlesCountry = (w.topEngagedCountryBottlesSold?.isEmpty ?? true) ? "No sales yet" : (w.topEngagedCountryBottlesSold ?? "No sales yet")
             (bottlesCountry as NSString).draw(at: CGPoint(x: margin + colWidth, y: y + 16), withAttributes: engAttr)
 
             y += 50
@@ -165,7 +164,7 @@ struct ReportPDFGenerator {
             lightGray.setFill()
             ctx.cgContext.fill(CGRect(x: margin, y: footerY - 12, width: contentWidth, height: 1))
             let footerAttr: [NSAttributedString.Key: Any] = [.font: regular(9), .foregroundColor: mediumGray]
-            let footer = "Confidential — prepared for \(contactName) by Vivino at ProWein 2026. Data reflects the 12 months ending Feb 2026."
+            let footer = "Confidential — prepared for \(contactName) by Vivino at Prowein 2026. Data reflects the 12 months ending Feb 2026."
             (footer as NSString).draw(
                 in: CGRect(x: margin, y: footerY, width: contentWidth, height: 20),
                 withAttributes: footerAttr
@@ -174,12 +173,6 @@ struct ReportPDFGenerator {
     }
 
     // MARK: - Helpers
-
-    /// Most engaged country should exclude origin; data may have origin in CSV.
-    private static func excludeOrigin(_ value: String, origin: String) -> String {
-        guard !value.isEmpty else { return value }
-        return value.trimmingCharacters(in: .whitespaces).lowercased() == origin.trimmingCharacters(in: .whitespaces).lowercased() ? "—" : value
-    }
 
     private static func compactFmt(_ n: Int) -> String {
         if n >= 1_000_000 { return String(format: "%.1fM", Double(n) / 1_000_000) }
