@@ -376,6 +376,11 @@ struct WineryCardView: View {
 
             // Most engaged country (full width)
             mostEngagedSection
+
+            Text("All data representative of last 12 complete months.")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+                .frame(maxWidth: .infinity, alignment: .center)
         }
         .padding(spacingL)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -466,14 +471,14 @@ struct WineryCardView: View {
     }
 
     private var ratingsCell: some View {
-        dataCell(label: "Ratings (12m)") {
+        dataCell(label: "Ratings") {
             Text(winery.ratingsCount.formatted())
                 .font(statFont)
         }
     }
 
     private var pageviewsCell: some View {
-        dataCell(label: "Pageviews (12m)") {
+        dataCell(label: "Pageviews") {
             VStack(alignment: .leading, spacing: spacingXS) {
                 Text(compactFormat(winery.pageviews12m))
                     .font(statFont)
@@ -494,7 +499,7 @@ struct WineryCardView: View {
     }
 
     private var scansCell: some View {
-        dataCell(label: "Scans (12m)") {
+        dataCell(label: "Scans") {
             VStack(alignment: .leading, spacing: spacingXS) {
                 Text(compactFormat(winery.scans12m))
                     .font(statFont)
@@ -557,7 +562,7 @@ struct WineryCardView: View {
     }
 
     private var bottlesSoldCell: some View {
-        dataCell(label: "Bottles sold (12m)") {
+        dataCell(label: "Bottles sold") {
             Text(winery.bottlesSold12m.formatted())
                 .font(statFont)
                 .foregroundStyle(winery.bottlesSold12m == 0 ? .secondary : .primary)
