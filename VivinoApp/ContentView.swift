@@ -1,4 +1,5 @@
 import SwiftUI
+import MessageUI
 import UIKit
 
 // MARK: - Vivino brand (accent only; system colors elsewhere for Apple feel)
@@ -62,6 +63,7 @@ struct FlagView: View {
 struct ContentView: View {
     @AppStorage("isRecording") var isRecording: Bool = true
     @State private var query = ""
+    @State private var debouncedQuery = ""
     @State private var contactName = ""
     @State private var contactEmail = ""
     @State private var showSessionLog = false
@@ -72,12 +74,25 @@ struct ContentView: View {
     @State private var shareEmailSuggestion: String? = nil
     @State private var wineries: [Winery] = []
     @State private var winery: Winery? = nil
+    @State private var isContactCardExpanded = true
+    @State private var mailRecipient = ""
+    @State private var mailSubject = ""
+    @State private var mailBody = ""
+    @State private var mailAttachment: Data? = nil
+    @State private var mailAttachmentName = "report.pdf"
+    @State private var showMail = false
+    /// When session is paused, hold winery/contact until Mail or share sheet confirms send, then log.
+    @State private var pendingLog: (winery: Winery, name: String, email: String)? = nil
+    /// Cached so typing in contact form doesn't re-run the 250k filter on every keystroke (fixes contact-form keyboard lag).
+    @State private var cachedSuggestions: [Winery] = []
 
-    /// Top suggestions shown while typing (capped to keep dropdown snappy).
-    var suggestions: [Winery] {
-        guard query.count >= 2 else { return [] }
-        let q = query.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
-        return Array(wineries.lazy.filter {
+    private func updateSuggestions() {
+        guard debouncedQuery.count >= 2 else {
+            cachedSuggestions = []
+            return
+        }
+        let q = debouncedQuery.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+        cachedSuggestions = Array(wineries.lazy.filter {
             $0.name.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current).contains(q)
         }.prefix(8))
     }
@@ -103,13 +118,14 @@ struct ContentView: View {
                 .background(Color(.systemGroupedBackground))
 
                 if winery != nil {
-                    sendReportSection
+                    contactCardSection
                 }
             }
             .searchable(text: $query, prompt: "Search winery name") {
-                ForEach(suggestions) { w in
+                ForEach(cachedSuggestions) { w in
                     Button {
                         query = w.name
+                        debouncedQuery = w.name
                         winery = w
                     } label: {
                         VStack(alignment: .leading, spacing: 2) {
@@ -122,7 +138,19 @@ struct ContentView: View {
                     .buttonStyle(.plain)
                 }
             }
+            .onChange(of: query) { _, newValue in
+                Task { @MainActor in
+                    try? await Task.sleep(nanoseconds: 150_000_000)
+                    if query == newValue {
+                        debouncedQuery = newValue
+                        updateSuggestions()
+                    }
+                }
+            }
+            .onChange(of: debouncedQuery) { _, _ in updateSuggestions() }
             .onSubmit(of: .search) {
+                debouncedQuery = query
+                updateSuggestions()
                 let q = query.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
                 winery = wineries.first {
                     $0.name.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current).contains(q)
@@ -148,11 +176,28 @@ struct ContentView: View {
         .fullScreenCover(isPresented: $showSessionLog) {
             SessionLogView()
         }
+        .sheet(isPresented: $showMail) {
+            MailView(recipient: mailRecipient, subject: mailSubject,
+                     body: mailBody, isHTML: false,
+                     attachmentData: mailAttachment,
+                     attachmentFileName: mailAttachmentName,
+                     isPresented: $showMail,
+                     winery: pendingLog?.winery,
+                     contactName: pendingLog?.name,
+                     contactEmail: pendingLog?.email,
+                     onSent: { pendingLog = nil })
+        }
         .sheet(isPresented: $showShareSheet) {
             if let data = sharePDFData {
                 ShareSheet(pdfData: data, fileName: shareFileName,
                            emailSuggestion: shareEmailSuggestion,
-                           isPresented: $showShareSheet)
+                           isPresented: $showShareSheet,
+                           onDismiss: {
+                               if let p = pendingLog {
+                                   SessionLogger.log(winery: p.winery, contactName: p.name, contactEmail: p.email, isRecording: false)
+                                   pendingLog = nil
+                               }
+                           })
             }
         }
         .onAppear {
@@ -160,6 +205,7 @@ struct ContentView: View {
             if wineries.isEmpty {
                 wineries = sampleWineries
             }
+            updateSuggestions()
         }
     }
 
@@ -187,6 +233,35 @@ struct ContentView: View {
         }
     }
 
+    /// Contact card: expandable/collapsible so user can show and hide it.
+    var contactCardSection: some View {
+        VStack(spacing: 0) {
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) { isContactCardExpanded.toggle() }
+            } label: {
+                HStack {
+                    Text("Send Report")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Image(systemName: isContactCardExpanded ? "chevron.down" : "chevron.up")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.horizontal, spacingL)
+                .padding(.vertical, spacingS)
+                .background(Color(.secondarySystemGroupedBackground))
+            }
+            .buttonStyle(.plain)
+
+            if isContactCardExpanded {
+                sendReportSection
+            }
+        }
+    }
+
+    /// Contact form: pure entry only (name, email). No winery lookup while typing.
+    /// On Send, logs to session with the current winery already loaded on the page (no 250k reference).
     var sendReportSection: some View {
         VStack(alignment: .leading, spacing: 0) {
             Form {
@@ -199,7 +274,7 @@ struct ContentView: View {
                         .autocapitalization(.none)
                         .submitLabel(.done)
                 } header: {
-                    Text("Send Report")
+                    Text("Contact details")
                 } footer: {
                     VStack(spacing: spacingXS) {
                         if !errorMessage.isEmpty {
@@ -212,7 +287,7 @@ struct ContentView: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                         if !isRecording {
-                            Text("Session paused — this send will not be logged.")
+                            Text("Session paused - sends are still logged.")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -257,15 +332,20 @@ struct ContentView: View {
             return
         }
 
-        SessionLogger.log(winery: w, contactName: contactName,
-                          contactEmail: contactEmail, isRecording: isRecording)
+        if isRecording {
+            SessionLogger.log(winery: w, contactName: contactName,
+                              contactEmail: contactEmail, isRecording: true)
+        } else {
+            pendingLog = (w, contactName, contactEmail)
+        }
 
         // Generate branded PDF report
         let pdfData = ReportPDFGenerator.generate(winery: w, contactName: contactName)
         let safeName = w.name
             .replacingOccurrences(of: " ", with: "-")
             .replacingOccurrences(of: "/", with: "-")
-        let fileName = "Vivino-Report-\(safeName).pdf"
+        let subjectLine = "Your Vivino Report from Prowein - \(w.name)"
+        let fileName = "Vivino Report - Prowein - \(safeName).pdf"
 
         let bodyText = """
         Hi \(contactName),
@@ -279,17 +359,25 @@ struct ContentView: View {
         • \(compactFormat(w.scans12m)) label scans in the last 12 months
         • Buy-button coverage is currently at \(Int(w.buyButtonCoverage * 100))%
 
-        We'd love to help you get even more out of Vivino. If you have any questions about the data or would like to explore partnership opportunities, just reply to this email — we're happy to help.
+        We'd love to help you get even more out of Vivino. If you have any questions about the data or would like to explore partnership opportunities, just reply to this email - we're happy to help.
 
         Cheers,
         The Vivino Partner Team
         """
 
-        // Use share sheet so the user can send with any app (Mail, Gmail, Outlook, etc.) — not tied to Apple Mail.
-        sharePDFData = pdfData
-        shareFileName = fileName
-        shareEmailSuggestion = "To: \(contactEmail)\nSubject: Your Vivino Report — \(w.name)\n\n\(bodyText)"
-        showShareSheet = true
+        if MFMailComposeViewController.canSendMail() {
+            mailRecipient = contactEmail
+            mailSubject = subjectLine
+            mailAttachment = pdfData
+            mailAttachmentName = fileName
+            mailBody = bodyText
+            showMail = true
+        } else {
+            sharePDFData = pdfData
+            shareFileName = fileName
+            shareEmailSuggestion = "To: \(contactEmail)\nSubject: \(subjectLine)\n\n\(bodyText)"
+            showShareSheet = true
+        }
 
         contactName = ""
         contactEmail = ""
