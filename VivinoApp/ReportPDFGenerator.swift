@@ -146,10 +146,16 @@ struct ReportPDFGenerator {
             let engSub: [NSAttributedString.Key: Any] = [.font: regular(11), .foregroundColor: mediumGray]
 
             ("By pageviews" as NSString).draw(at: CGPoint(x: margin, y: y), withAttributes: engSub)
-            (w.topEngagedCountryPageviews as NSString).draw(at: CGPoint(x: margin, y: y + 16), withAttributes: engAttr)
+            let pvCountry = excludeOrigin(w.topEngagedCountryPageviews, origin: w.country)
+            (pvCountry as NSString).draw(at: CGPoint(x: margin, y: y + 16), withAttributes: engAttr)
 
             ("By bottles sold" as NSString).draw(at: CGPoint(x: margin + colWidth, y: y), withAttributes: engSub)
-            let bottlesCountry = w.topEngagedCountryBottlesSold ?? "No sales yet"
+            let bottlesCountry: String
+            if let b = w.topEngagedCountryBottlesSold, !b.isEmpty {
+                bottlesCountry = excludeOrigin(b, origin: w.country)
+            } else {
+                bottlesCountry = "No sales yet"
+            }
             (bottlesCountry as NSString).draw(at: CGPoint(x: margin + colWidth, y: y + 16), withAttributes: engAttr)
 
             y += 50
@@ -168,6 +174,12 @@ struct ReportPDFGenerator {
     }
 
     // MARK: - Helpers
+
+    /// Most engaged country should exclude origin; data may have origin in CSV.
+    private static func excludeOrigin(_ value: String, origin: String) -> String {
+        guard !value.isEmpty else { return value }
+        return value.trimmingCharacters(in: .whitespaces).lowercased() == origin.trimmingCharacters(in: .whitespaces).lowercased() ? "—" : value
+    }
 
     private static func compactFmt(_ n: Int) -> String {
         if n >= 1_000_000 { return String(format: "%.1fM", Double(n) / 1_000_000) }

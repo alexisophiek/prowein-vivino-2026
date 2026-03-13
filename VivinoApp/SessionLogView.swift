@@ -108,14 +108,19 @@ struct SessionDetailView: View {
                 detailRow("New-to-Brand Orders", record.newToBrandOrders12m)
             }
 
-            Section("Top Engaged Country") {
-                detailRow("By Pageviews", record.topEngagedCountryPageviews)
-                detailRow("By Bottles Sold", record.topEngagedCountryBottlesSold.isEmpty ? "—" : record.topEngagedCountryBottlesSold)
+            Section("Top Engaged Country (outside origin)") {
+                detailRow("By Pageviews", topEngagedDisplay(record.topEngagedCountryPageviews))
+                detailRow("By Bottles Sold", record.topEngagedCountryBottlesSold.isEmpty ? "—" : topEngagedDisplay(record.topEngagedCountryBottlesSold))
             }
         }
         .listStyle(.insetGrouped)
         .navigationTitle(record.wineryName)
         .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func topEngagedDisplay(_ value: String) -> String {
+        guard !value.isEmpty else { return "—" }
+        return value.trimmingCharacters(in: .whitespaces).lowercased() == record.country.trimmingCharacters(in: .whitespaces).lowercased() ? "—" : value
     }
 
     private func detailRow(_ label: String, _ value: String) -> some View {

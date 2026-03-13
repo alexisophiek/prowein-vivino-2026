@@ -74,7 +74,7 @@ struct ContentView: View {
     @State private var shareEmailSuggestion: String? = nil
     @State private var wineries: [Winery] = []
     @State private var winery: Winery? = nil
-    @State private var isContactCardExpanded = true
+    @State private var isContactCardExpanded = false
     @State private var mailRecipient = ""
     @State private var mailSubject = ""
     @State private var mailBody = ""
@@ -127,6 +127,10 @@ struct ContentView: View {
                         query = w.name
                         debouncedQuery = w.name
                         winery = w
+                        updateSuggestions()
+                        if isRecording {
+                            SessionLogger.log(winery: w, contactName: "—", contactEmail: "—", isRecording: true)
+                        }
                     } label: {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(w.name).font(.body)
@@ -139,11 +143,16 @@ struct ContentView: View {
                 }
             }
             .onChange(of: query) { _, newValue in
-                Task { @MainActor in
-                    try? await Task.sleep(nanoseconds: 150_000_000)
-                    if query == newValue {
-                        debouncedQuery = newValue
-                        updateSuggestions()
+                if newValue.count < 2 {
+                    debouncedQuery = newValue
+                    updateSuggestions()
+                } else {
+                    Task { @MainActor in
+                        try? await Task.sleep(nanoseconds: 100_000_000)
+                        if query == newValue {
+                            debouncedQuery = newValue
+                            updateSuggestions()
+                        }
                     }
                 }
             }
@@ -152,8 +161,15 @@ struct ContentView: View {
                 debouncedQuery = query
                 updateSuggestions()
                 let q = query.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
-                winery = wineries.first {
+                if let w = wineries.first(where: {
                     $0.name.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current).contains(q)
+                }) {
+                    winery = w
+                    if isRecording {
+                        SessionLogger.log(winery: w, contactName: "—", contactEmail: "—", isRecording: true)
+                    }
+                } else {
+                    winery = nil
                 }
             }
             .autocorrectionDisabled()
@@ -237,6 +253,9 @@ struct ContentView: View {
     var contactCardSection: some View {
         VStack(spacing: 0) {
             Button {
+                if isContactCardExpanded == false {
+                    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                }
                 withAnimation(.easeInOut(duration: 0.2)) { isContactCardExpanded.toggle() }
             } label: {
                 HStack {
@@ -282,16 +301,22 @@ struct ContentView: View {
                                 .font(.caption)
                                 .foregroundStyle(vivinoRed)
                                 .frame(maxWidth: .infinity)
+                                .multilineTextAlignment(.center)
                         }
                         Text("Contact is saved on this device. Choose Mail, Gmail, Outlook, or any app to send the report.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity)
+                            .multilineTextAlignment(.center)
                         if !isRecording {
                             Text("Session paused - sends are still logged.")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
+                                .frame(maxWidth: .infinity)
+                                .multilineTextAlignment(.center)
                         }
                     }
+                    .frame(maxWidth: .infinity)
                     .padding(.top, 4)
                 }
 
@@ -510,8 +535,16 @@ struct WineryCardView: View {
         .clipShape(RoundedRectangle(cornerRadius: cornerRadiusControl))
     }
 
+    /// Top engaged country excluding origin (data may have origin in CSV; we hide it).
+    private func countryOutsideOrigin(_ value: String?) -> String? {
+        guard let v = value, !v.isEmpty else { return nil }
+        return v.trimmingCharacters(in: .whitespaces).lowercased() == winery.country.trimmingCharacters(in: .whitespaces).lowercased() ? nil : v
+    }
+
     private var mostEngagedSection: some View {
-        VStack(alignment: .leading, spacing: spacingS) {
+        let pageviewsCountry = countryOutsideOrigin(winery.topEngagedCountryPageviews)
+        let bottlesCountry = countryOutsideOrigin(winery.topEngagedCountryBottlesSold)
+        return VStack(alignment: .leading, spacing: spacingS) {
             Text("Most engaged country (outside origin)")
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -520,10 +553,16 @@ struct WineryCardView: View {
                     Text("By pageviews")
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
-                    HStack(spacing: 6) {
-                        FlagView(country: winery.topEngagedCountryPageviews)
-                        Text(winery.topEngagedCountryPageviews)
-                            .font(.subheadline.weight(.medium))
+                    if let c = pageviewsCountry {
+                        HStack(spacing: 6) {
+                            FlagView(country: c)
+                            Text(c)
+                                .font(.subheadline.weight(.medium))
+                        }
+                    } else {
+                        Text("—")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -532,14 +571,18 @@ struct WineryCardView: View {
                     Text("By bottles sold")
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
-                    if let bottlesCountry = winery.topEngagedCountryBottlesSold {
+                    if let c = bottlesCountry {
                         HStack(spacing: 6) {
-                            FlagView(country: bottlesCountry)
-                            Text(bottlesCountry)
+                            FlagView(country: c)
+                            Text(c)
                                 .font(.subheadline.weight(.medium))
                         }
-                    } else {
+                    } else if winery.topEngagedCountryBottlesSold == nil || winery.topEngagedCountryBottlesSold?.isEmpty == true {
                         Text("— No sales yet")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Text("—")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
