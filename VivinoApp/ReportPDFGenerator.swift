@@ -49,7 +49,7 @@ struct ReportPDFGenerator {
                 withAttributes: logoAttr
             )
 
-            let tagline = "ProWein 2026 · Winery Report"
+            let tagline = "Prowein 2026 · Winery Report"
             let tagAttr: [NSAttributedString.Key: Any] = [
                 .font: regular(13),
                 .foregroundColor: UIColor.white.withAlphaComponent(0.85)
@@ -164,7 +164,7 @@ struct ReportPDFGenerator {
             lightGray.setFill()
             ctx.cgContext.fill(CGRect(x: margin, y: footerY - 12, width: contentWidth, height: 1))
             let footerAttr: [NSAttributedString.Key: Any] = [.font: regular(9), .foregroundColor: mediumGray]
-            let footer = "Confidential — prepared for \(contactName) by Vivino at ProWein 2026. Data reflects the 12 months ending Feb 2026."
+            let footer = "Confidential — prepared for \(contactName) by Vivino at Prowein 2026. Data reflects the 12 months ending Feb 2026."
             (footer as NSString).draw(
                 in: CGRect(x: margin, y: footerY, width: contentWidth, height: 20),
                 withAttributes: footerAttr

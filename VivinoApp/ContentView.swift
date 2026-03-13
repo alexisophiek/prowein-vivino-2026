@@ -239,7 +239,7 @@ struct ContentView: View {
                     .resizable()
                     .scaledToFit()
                     .frame(width: 120)
-                Text("ProWein 2026")
+                Text("Prowein 2026")
                     .font(.headline)
                     .foregroundColor(.primary)
             }
@@ -382,7 +382,7 @@ struct ContentView: View {
         let bodyText = """
         Hi \(contactName),
 
-        It was great connecting with you at ProWein 2026!
+        It was great connecting with you at Prowein 2026!
 
         As promised, please find your personalised Vivino report for \(w.name) attached to this email. It includes your global rating, audience engagement, pageview and scan rankings in \(w.country), new-to-brand discovery metrics, and sales overview.
 

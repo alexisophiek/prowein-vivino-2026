@@ -58,7 +58,7 @@ struct SessionLogView: View {
                     if !records.isEmpty, let url = csvShareURL {
                         ShareLink(
                             item: url,
-                            preview: SharePreview("ProWein 2026 Session Log", image: Image(systemName: "tablecells"))
+                            preview: SharePreview("Prowein 2026 Session Log", image: Image(systemName: "tablecells"))
                         ) {
                             Image(systemName: "square.and.arrow.up")
                         }
