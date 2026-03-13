@@ -131,7 +131,7 @@ struct ContentView: View {
                         winery = w
                         updateSuggestions()
                         if isRecording {
-                            SessionLogger.log(winery: w, contactName: "—", contactEmail: "—", isRecording: true)
+                            lastLoggedSessionId = SessionLogger.log(winery: w, contactName: "—", contactEmail: "—", isRecording: true, emailSentAt: nil)
                         }
                     } label: {
                         VStack(alignment: .leading, spacing: 2) {
@@ -145,17 +145,25 @@ struct ContentView: View {
                 }
             }
             .onChange(of: query) { _, newValue in
+                if newValue.isEmpty {
+                    winery = nil
+                    debouncedQuery = ""
+                    lastLoggedSessionId = nil
+                    cachedSuggestions = []
+                    return
+                }
                 if newValue.count < 2 {
                     debouncedQuery = newValue
                     updateSuggestions()
-                } else {
-                    Task { @MainActor in
-                        try? await Task.sleep(nanoseconds: 100_000_000)
-                        if query == newValue {
-                            debouncedQuery = newValue
-                            updateSuggestions()
-                        }
-                    }
+                }
+            }
+            .task(id: query) {
+                guard query.count >= 2 else { return }
+                try? await Task.sleep(nanoseconds: 100_000_000)
+                guard !Task.isCancelled else { return }
+                await MainActor.run {
+                    debouncedQuery = query
+                    updateSuggestions()
                 }
             }
             .onChange(of: debouncedQuery) { _, _ in updateSuggestions() }
@@ -168,7 +176,7 @@ struct ContentView: View {
                 }) {
                     winery = w
                     if isRecording {
-                        SessionLogger.log(winery: w, contactName: "—", contactEmail: "—", isRecording: true)
+                        lastLoggedSessionId = SessionLogger.log(winery: w, contactName: "—", contactEmail: "—", isRecording: true, emailSentAt: nil)
                     }
                 } else {
                     winery = nil
@@ -204,7 +212,7 @@ struct ContentView: View {
                      winery: pendingLog?.winery,
                      contactName: pendingLog?.name,
                      contactEmail: pendingLog?.email,
-                     onSent: { lastLoggedSessionId = nil; pendingLog = nil })
+                     onSent: { lastLoggedSessionId = nil; pendingLog = nil; isContactCardExpanded = false })
         }
         .sheet(isPresented: $showShareSheet) {
             if let data = sharePDFData {
@@ -220,6 +228,7 @@ struct ContentView: View {
                                    _ = SessionLogger.log(winery: p.winery, contactName: p.name, contactEmail: p.email, isRecording: false, emailSentAt: Date())
                                    pendingLog = nil
                                }
+                               isContactCardExpanded = false
                            })
             }
         }
@@ -365,8 +374,12 @@ struct ContentView: View {
         }
 
         if isRecording {
-            lastLoggedSessionId = SessionLogger.log(winery: w, contactName: contactName,
-                                                     contactEmail: contactEmail, isRecording: true, emailSentAt: nil)
+            if let id = lastLoggedSessionId {
+                SessionLogger.updateSession(id: id, contactName: contactName, contactEmail: contactEmail)
+            } else {
+                lastLoggedSessionId = SessionLogger.log(winery: w, contactName: contactName,
+                                                        contactEmail: contactEmail, isRecording: true, emailSentAt: nil)
+            }
         } else {
             pendingLog = (w, contactName, contactEmail)
         }
@@ -389,7 +402,7 @@ struct ContentView: View {
         A few quick highlights:
         • You're in the top \(Int(w.pageviewRankPercent))% of wineries in \(w.country) by pageviews
         • \(compactFormat(w.scans12m)) label scans in the last 12 months
-        • Buy-button coverage is currently at \(Int(w.buyButtonCoverage * 100))%
+        • Buy-button coverage (global, of all pageviews) is currently at \(Int(w.buyButtonCoverage * 100))%
 
         We'd love to help you get even more out of Vivino. If you have any questions about the data or would like to explore partnership opportunities, just reply to this email - we're happy to help.
 

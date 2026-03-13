@@ -6,8 +6,8 @@ struct SessionRecord: Identifiable, Codable {
     let timestamp: String
     let wineryName: String
     let country: String
-    let contactName: String
-    let contactEmail: String
+    var contactName: String
+    var contactEmail: String
     var emailSentAt: String?
     let globalRating: String
     let ratingsCount: String
@@ -97,6 +97,15 @@ struct SessionLogger {
         list.append(record)
         saveRecords(list)
         return id
+    }
+
+    /// Update an existing session with contact details (e.g. when user taps Send in live mode).
+    static func updateSession(id sessionId: String, contactName: String, contactEmail: String) {
+        var list = loadAllRecords()
+        guard let idx = list.firstIndex(where: { $0.id == sessionId }) else { return }
+        list[idx].contactName = contactName
+        list[idx].contactEmail = contactEmail
+        saveRecords(list)
     }
 
     /// Update an existing session when the email was actually sent.

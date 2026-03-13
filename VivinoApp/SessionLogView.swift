@@ -3,19 +3,6 @@ import SwiftUI
 struct SessionLogView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var records: [SessionRecord] = []
-    @State private var searchText = ""
-
-    private var filteredRecords: [SessionRecord] {
-        guard !searchText.isEmpty else { return records }
-        let q = searchText.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
-        return records.filter {
-            $0.wineryName.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current).contains(q) ||
-            $0.country.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current).contains(q) ||
-            $0.contactName.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current).contains(q) ||
-            $0.contactEmail.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current).contains(q)
-        }
-    }
-
     @State private var csvShareURL: URL? = nil
 
     var body: some View {
@@ -28,7 +15,7 @@ struct SessionLogView: View {
                         description: Text("Recorded sessions will appear here after you send reports.")
                     )
                 } else {
-                    List(filteredRecords) { record in
+                    List(records) { record in
                         NavigationLink(destination: SessionDetailView(record: record)) {
                             HStack(spacing: 12) {
                                 FlagView(country: record.country)
@@ -46,7 +33,6 @@ struct SessionLogView: View {
                     .listStyle(.insetGrouped)
                 }
             }
-            .searchable(text: $searchText, prompt: "Search by winery, country, or contact")
             .navigationTitle("Session Log")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {

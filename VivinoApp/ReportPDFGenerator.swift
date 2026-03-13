@@ -28,7 +28,7 @@ struct ReportPDFGenerator {
 
         return renderer.pdfData { ctx in
             ctx.beginPage()
-            // PDF uses bottom-left origin, Y-up; flip so we can draw with top-left origin (UIKit style).
+            // PDF uses bottom-left origin; flip so we can draw top-down (header at top, footer at bottom).
             ctx.cgContext.translateBy(x: 0, y: pageHeight)
             ctx.cgContext.scaleBy(x: 1, y: -1)
             var y: CGFloat = margin
@@ -180,7 +180,7 @@ struct ReportPDFGenerator {
         return "\(n)"
     }
 
-    /// Draw a pair of stat cells side-by-side and return the new Y position.
+    /// Draw a pair of stat cells side-by-side and return the new Y position. Top-down y.
     @discardableResult
     private static func drawStatPair(
         ctx: UIGraphicsPDFRendererContext,
