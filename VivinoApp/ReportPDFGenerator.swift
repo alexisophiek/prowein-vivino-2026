@@ -86,15 +86,15 @@ struct ReportPDFGenerator {
             y = drawStatPair(
                 ctx: ctx, y: y, x: margin, colWidth: colWidth,
                 label1: "Global Rating", value1: String(format: "%.1f", w.globalRating),
-                label2: "Ratings (last 12 months)", value2: w.ratingsCount.formatted()
+                label2: "Ratings", value2: w.ratingsCount.formatted()
             )
 
             // Row 2
             y = drawStatPair(
                 ctx: ctx, y: y, x: margin, colWidth: colWidth,
-                label1: "Pageviews (last 12 months)", value1: compactFmt(w.pageviews12m),
+                label1: "Pageviews", value1: compactFmt(w.pageviews12m),
                 sub1: "Top \(Int(w.pageviewRankPercent))% of \(w.pageviewRankTotal.formatted()) wineries in \(w.country)",
-                label2: "Scans (last 12 months)", value2: compactFmt(w.scans12m),
+                label2: "Scans", value2: compactFmt(w.scans12m),
                 sub2: "Top \(Int(w.scanRankPercent))% of \(w.scanRankTotal.formatted()) wineries in \(w.country)"
             )
 
@@ -112,7 +112,7 @@ struct ReportPDFGenerator {
             y = drawStatPair(
                 ctx: ctx, y: y, x: margin, colWidth: colWidth,
                 label1: "Wines Listed", value1: "\(w.winesListed)",
-                label2: "Bottles Sold (last 12 months)", value2: w.bottlesSold12m.formatted()
+                label2: "Bottles Sold", value2: w.bottlesSold12m.formatted()
             )
 
             // ── Buy button coverage bar ─────────────────────────────────
@@ -161,7 +161,7 @@ struct ReportPDFGenerator {
             lightGray.setFill()
             ctx.cgContext.fill(CGRect(x: margin, y: footerY - 12, width: contentWidth, height: 1))
             let footerAttr: [NSAttributedString.Key: Any] = [.font: regular(9), .foregroundColor: mediumGray]
-            let footer = "Confidential — prepared for \(contactName) by Vivino at Prowein 2026. Data reflects the 12 months ending Feb 2026."
+            let footer = "Confidential — prepared for \(contactName) by Vivino at Prowein 2026. All data representative of last 12 complete months."
             (footer as NSString).draw(
                 in: CGRect(x: margin, y: footerY, width: contentWidth, height: 20),
                 withAttributes: footerAttr
