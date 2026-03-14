@@ -100,8 +100,8 @@ struct ContentView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
+        VStack(spacing: 0) {
+            NavigationStack {
                 ScrollView {
                     VStack(spacing: spacingXL) {
                         headerView
@@ -118,12 +118,7 @@ struct ContentView: View {
                     .padding(spacingXL)
                 }
                 .background(Color(.systemGroupedBackground))
-
-                if winery != nil {
-                    contactCardSection
-                }
-            }
-            .searchable(text: $query, prompt: "Search winery name") {
+                .searchable(text: $query, prompt: "Search winery name") {
                 ForEach(cachedSuggestions) { w in
                     Button {
                         query = w.name
@@ -184,6 +179,11 @@ struct ContentView: View {
             }
             .autocorrectionDisabled()
             .navigationBarTitleDisplayMode(.inline)
+            }
+
+            if winery != nil {
+                contactCardSection
+            }
         }
         .ignoresSafeArea(.keyboard, edges: .bottom)
         .overlay(alignment: .bottomTrailing) {

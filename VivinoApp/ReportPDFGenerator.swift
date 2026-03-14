@@ -28,9 +28,6 @@ struct ReportPDFGenerator {
 
         return renderer.pdfData { ctx in
             ctx.beginPage()
-            // PDF uses bottom-left origin; flip so we can draw top-down (header at top, footer at bottom).
-            ctx.cgContext.translateBy(x: 0, y: pageHeight)
-            ctx.cgContext.scaleBy(x: 1, y: -1)
             var y: CGFloat = margin
 
             // ── Header bar ──────────────────────────────────────────────
