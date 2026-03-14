@@ -87,6 +87,8 @@ struct ContentView: View {
     @State private var lastLoggedSessionId: String? = nil
     /// Cached so typing in contact form doesn't re-run the 250k filter on every keystroke (fixes contact-form keyboard lag).
     @State private var cachedSuggestions: [Winery] = []
+    @State private var isSearchActive = false
+    @State private var isLoadingWinery = false
 
     private func updateSuggestions() {
         guard debouncedQuery.count >= 2 else {
@@ -105,7 +107,12 @@ struct ContentView: View {
                 ScrollView {
                     VStack(spacing: spacingXL) {
                         headerView
-                        if let w = winery {
+                        if isLoadingWinery {
+                            ProgressView()
+                                .controlSize(.large)
+                                .frame(maxWidth: .infinity)
+                                .padding(.top, spacingXL * 4)
+                        } else if let w = winery {
                             WineryCardView(winery: w)
                         } else if !query.isEmpty {
                             Text("No winery found. Try another name.")
@@ -118,27 +125,37 @@ struct ContentView: View {
                     .padding(spacingXL)
                 }
                 .background(Color(.systemGroupedBackground))
-                .searchable(text: $query, prompt: "Search winery name") {
-                ForEach(cachedSuggestions) { w in
-                    Button {
-                        query = w.name
-                        debouncedQuery = w.name
-                        winery = w
-                        updateSuggestions()
-                        if isRecording {
-                            lastLoggedSessionId = SessionLogger.log(winery: w, contactName: "—", contactEmail: "—", isRecording: true, emailSentAt: nil)
+                .searchable(text: $query, isPresented: $isSearchActive, prompt: "Search winery name")
+                .searchSuggestions {
+                    ForEach(cachedSuggestions) { w in
+                        Button {
+                            isSearchActive = false
+                            cachedSuggestions = []
+                            isLoadingWinery = true
+                            query = w.name
+                            debouncedQuery = w.name
+                            Task {
+                                try? await Task.sleep(nanoseconds: 50_000_000)
+                                winery = w
+                                isLoadingWinery = false
+                                if isRecording {
+                                    Task.detached {
+                                        let id = SessionLogger.log(winery: w, contactName: "—", contactEmail: "—", isRecording: true, emailSentAt: nil)
+                                        await MainActor.run { lastLoggedSessionId = id }
+                                    }
+                                }
+                            }
+                        } label: {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(w.name).font(.body)
+                                Text("\(w.region) · \(w.country)")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
                         }
-                    } label: {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(w.name).font(.body)
-                            Text("\(w.region) · \(w.country)")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
                 }
-            }
             .onChange(of: query) { _, newValue in
                 if newValue.isEmpty {
                     winery = nil
@@ -163,18 +180,23 @@ struct ContentView: View {
             }
             .onChange(of: debouncedQuery) { _, _ in updateSuggestions() }
             .onSubmit(of: .search) {
+                isSearchActive = false
+                cachedSuggestions = []
+                isLoadingWinery = true
                 debouncedQuery = query
-                updateSuggestions()
-                let q = query.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
-                if let w = wineries.first(where: {
-                    $0.name.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current).contains(q)
-                }) {
-                    winery = w
-                    if isRecording {
-                        lastLoggedSessionId = SessionLogger.log(winery: w, contactName: "—", contactEmail: "—", isRecording: true, emailSentAt: nil)
+                Task {
+                    let q = query.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+                    let match = wineries.first {
+                        $0.name.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current).contains(q)
                     }
-                } else {
-                    winery = nil
+                    winery = match
+                    isLoadingWinery = false
+                    if let w = match, isRecording {
+                        Task.detached {
+                            let id = SessionLogger.log(winery: w, contactName: "—", contactEmail: "—", isRecording: true, emailSentAt: nil)
+                            await MainActor.run { lastLoggedSessionId = id }
+                        }
+                    }
                 }
             }
             .autocorrectionDisabled()
